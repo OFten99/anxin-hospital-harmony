@@ -1,0 +1,20 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "安心挂号主模块"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "语音分诊挂号"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "安心挂号"
+    },
+    {
+      "name": "mic_reason",
+      "value": "需要录音权限，才能听懂您哪里不舒服"
+    }
+  ]
+}

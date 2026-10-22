@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>预约挂号</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0;
+    font-family: -apple-system, "HarmonyOS Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #F2F5F9;
+    color: #111418;
+    font-size: 18px;
+    padding-bottom: 110px;
+  }
+  .banner { background: #D32029; color: #fff; font-size: 14px; text-align: center; padding: 8px; }
+  .header { background: #1B62D6; color: #fff; padding: 20px 18px; }
+  .header h1 { margin: 0; font-size: 24px; }
+  .header p { margin: 8px 0 0; font-size: 17px; opacity: .9; }
+  .card { background: #fff; margin: 14px; border-radius: 16px; padding: 18px; }
+  .card h2 { font-size: 18px; margin: 0 0 14px; color: #5A6472; font-weight: 500; }
+  .doc { display: flex; align-items: center; padding: 14px 0; border-bottom: 1px solid #EEF1F5; }
+  .doc:last-child { border-bottom: none; }
+  .doc .info { flex: 1; }
+  .doc .name { font-size: 20px; font-weight: 600; }
+  .doc .title { font-size: 15px; color: #5A6472; margin-top: 4px; }
+  .doc .pick {
+    font-size: 16px; padding: 8px 16px; border-radius: 20px;
+    background: #E3EDFC; color: #0E47A8; border: none;
+  }
+  .doc.active .pick { background: #1B62D6; color: #fff; }
+  .slots { display: flex; flex-wrap: wrap; gap: 10px; }
+  .slot {
+    padding: 12px 18px; border-radius: 12px; background: #F2F5F9;
+    font-size: 17px; border: 2px solid transparent;
+  }
+  .slot.on { background: #E3EDFC; border-color: #1B62D6; color: #0E47A8; font-weight: 600; }
+  .bar {
+    position: fixed; left: 0; right: 0; bottom: 0; background: #fff;
+    padding: 14px 18px calc(14px + env(safe-area-inset-bottom));
+    box-shadow: 0 -4px 16px rgba(0,0,0,.06);
+  }
+  .btn {
+    width: 100%; height: 62px; border: none; border-radius: 31px;
+    background: #1B62D6; color: #fff; font-size: 22px; font-weight: 600;
+  }
+  .btn:disabled { background: #C7D3E3; }
+  .hint { text-align: center; font-size: 15px; color: #8892A0; margin-top: 10px; }
+  .ok { text-align: center; padding: 60px 24px; }
+  .ok .tick {
+    width: 88px; height: 88px; border-radius: 50%; background: #1E9E5A; color: #fff;
+    font-size: 48px; line-height: 88px; margin: 0 auto 24px;
+  }
+  .ok h3 { font-size: 26px; margin: 0 0 12px; }
+  .ok p { font-size: 18px; color: #5A6472; line-height: 32px; margin: 6px 0; }
+</style>
+</head>
+<body>
+  <div class="banner">演示页面，不产生真实挂号</div>
+  <div class="header">
+    <h1 id="hosp">医院</h1>
+    <p id="dept">科室</p>
+  </div>
+
+  <div id="step1">
+    <div class="card">
+      <h2>选择医生</h2>
+      <div class="doc active" data-name="王医生">
+        <div class="info"><div class="name">王医生</div><div class="title">主任医师 · 擅长老年常见病</div></div>
+        <button class="pick">选择</button>
+      </div>
+      <div class="doc" data-name="李医生">
+        <div class="info"><div class="name">李医生</div><div class="title">副主任医师 · 专病门诊</div></div>
+        <button class="pick">选择</button>
+      </div>
+      <div class="doc" data-name="赵医生">
+        <div class="info"><div class="name">赵医生</div><div class="title">主治医师 · 普通门诊</div></div>
+        <button class="pick">选择</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>选择时间</h2>
+      <div class="slots" id="slots"></div>
+    </div>
+  </div>
+
+  <div id="step2" style="display:none">
+    <div class="ok">
+      <div class="tick">✓</div>
+      <h3>预约成功</h3>
+      <p id="result"></p>
+      <p style="margin-top:20px;font-size:16px;color:#8892A0">这是演示流程，请勿据此前往就诊</p>
+    </div>
+  </div>
+
+  <div class="bar" id="bar">
+    <button class="btn" id="submit" disabled>请选择时间</button>
+    <div class="hint">就诊当天请带好医保卡与身份证</div>
+  </div>
+
+<script>
+  var current = { hosp: '', dept: '', slot: '', doc: '王医生' };
+
+  // 由鸿蒙侧的 Web 控制器在 onPageEnd 时调用
+  function initPage(hosp, dept, slot) {
+    document.getElementById('hosp').textContent = hosp;
+    document.getElementById('dept').textContent = dept;
+    var base = slot && slot.indexOf('今天') === 0 ? '今天' : '明天';
+    var times = base === '今天'
+      ? ['14:00', '14:30', '15:00', '15:30', '16:00']
+      : ['08:30', '09:00', '09:30', '10:00', '10:30'];
+    var box = document.getElementById('slots');
+    box.innerHTML = '';
+    times.forEach(function (t) {
+      var d = document.createElement('div');
+      d.className = 'slot';
+      d.textContent = base + ' ' + t;
+      d.onclick = function () {
+        var all = box.querySelectorAll('.slot');
+        for (var i = 0; i < all.length; i++) { all[i].classList.remove('on'); }
+        d.classList.add('on');
+        current.slot = base + ' ' + t;
+        var btn = document.getElementById('submit');
+        btn.disabled = false;
+        btn.textContent = '确认挂号';
+      };
+      box.appendChild(d);
+    });
+  }
+
+  var docs = document.querySelectorAll('.doc');
+  for (var i = 0; i < docs.length; i++) {
+    docs[i].onclick = function () {
+      for (var j = 0; j < docs.length; j++) { docs[j].classList.remove('active'); }
+      this.classList.add('active');
+      current.doc = this.getAttribute('data-name');
+    };
+  }
+
+  document.getElementById('submit').onclick = function () {
+    document.getElementById('step1').style.display = 'none';
+    document.getElementById('step2').style.display = 'block';
+    document.getElementById('bar').style.display = 'none';
+    document.getElementById('result').innerHTML =
+      current.hosp + '　' + current.dept + '<br>' +
+      current.doc + '　' + current.slot;
+  };
+</script>
+</body>
+</html>

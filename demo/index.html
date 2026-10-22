@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>安心挂号 · 交互原型</title>
+<style>
+  :root {
+    --bg: #F2F5F9;
+    --primary: #1B62D6;
+    --primary-dark: #0E47A8;
+    --primary-soft: #E3EDFC;
+    --danger: #D32029;
+    --text: #111418;
+    --sub: #5A6472;
+    --line: #E6EBF2;
+    --green: #1E9E5A;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: -apple-system, "HarmonyOS Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #E9EDF3;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 28px 16px;
+    color: var(--text);
+  }
+  .page-title { font-size: 15px; color: #6B7686; letter-spacing: .5px; margin-bottom: 16px; }
+  .page-title b { color: #111418; font-weight: 600; }
+
+  .phone {
+    width: 397px;
+    height: 822px;
+    background: #101215;
+    border-radius: 52px;
+    padding: 12px;
+    box-shadow: 0 24px 60px rgba(17, 32, 56, .22), 0 2px 8px rgba(17, 32, 56, .12);
+    position: relative;
+  }
+  .screen {
+    width: 100%;
+    height: 100%;
+    background: var(--bg);
+    border-radius: 42px;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+  .statusbar {
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 26px;
+    font-size: 14px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .statusbar .icons { display: flex; gap: 6px; align-items: center; }
+  .bar { width: 17px; height: 11px; border: 1.6px solid #111; border-radius: 3px; position: relative; }
+  .bar::after { content: ""; position: absolute; right: -3px; top: 3px; width: 2px; height: 5px; background: #111; border-radius: 1px; }
+  .bar::before { content: ""; position: absolute; left: 1.5px; top: 1.5px; bottom: 1.5px; width: 10px; background: #111; border-radius: 1px; }
+
+  .screen-inner { flex: 1; overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; }
+  .screen-inner::-webkit-scrollbar { width: 0; }
+
+  .view { display: none; flex-direction: column; flex: 1; padding: 0 20px 24px; }
+  .view.active { display: flex; animation: fadein .22s ease; }
+  @keyframes fadein { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+  .nav { height: 54px; display: flex; align-items: center; padding: 0 20px; flex-shrink: 0; }
+  .nav .back { font-size: 16px; color: var(--primary); cursor: pointer; padding: 8px 12px 8px 0; }
+  .nav .title { font-size: 17px; font-weight: 600; }
+
+  /* 首页 */
+  .home { align-items: center; text-align: center; padding-top: 18px; }
+  .home h1 { font-size: 32px; letter-spacing: 1px; }
+  .home .sub { font-size: 16px; color: var(--sub); margin-top: 10px; }
+  .mic-wrap { margin-top: 42px; position: relative; width: 210px; height: 210px; }
+  .mic-ring {
+    position: absolute; inset: 0; border-radius: 50%;
+    background: rgba(27, 98, 214, .12);
+    animation: pulse 2.4s ease-out infinite;
+  }
+  .mic-ring:nth-child(2) { animation-delay: 1.2s; }
+  @keyframes pulse {
+    0% { transform: scale(.82); opacity: .9; }
+    100% { transform: scale(1.24); opacity: 0; }
+  }
+  .mic-btn {
+    position: absolute; inset: 18px; border-radius: 50%;
+    background: linear-gradient(160deg, #2A75EC, #1450B8);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    color: #fff; cursor: pointer;
+    box-shadow: 0 14px 30px rgba(27, 98, 214, .34), inset 0 1px 0 rgba(255,255,255,.25);
+    transition: transform .12s ease;
+    user-select: none;
+  }
+  .mic-btn:active { transform: scale(.96); }
+  .mic-btn svg { width: 52px; height: 52px; margin-bottom: 6px; }
+  .mic-btn span { font-size: 16px; font-weight: 600; }
+  .home .tip { font-size: 15px; color: var(--sub); margin-top: 26px; line-height: 1.6; }
+  .samples { margin-top: auto; width: 100%; padding-top: 20px; }
+  .samples p { font-size: 13px; color: var(--sub); text-align: center; margin-bottom: 12px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+  .chip {
+    font-size: 13px; padding: 9px 15px; border-radius: 18px;
+    background: var(--primary-soft); color: var(--primary-dark);
+    cursor: pointer; border: none; font-family: inherit;
+    transition: background .15s;
+  }
+  .chip:hover { background: #D2E2FB; }
+
+  /* 录音 */
+  .recording { align-items: center; text-align: center; }
+  .recording h2 { font-size: 26px; color: var(--danger); margin-top: 40px; }
+  .rec-time { font-size: 56px; font-weight: 700; margin-top: 20px; font-variant-numeric: tabular-nums; }
+  .wave { display: flex; gap: 5px; align-items: center; height: 60px; margin-top: 26px; }
+  .wave i {
+    display: block; width: 6px; border-radius: 3px; background: var(--danger);
+    animation: wv 1s ease-in-out infinite;
+  }
+  .wave i:nth-child(odd) { animation-duration: .8s; }
+  .wave i:nth-child(3n) { animation-duration: 1.2s; }
+  @keyframes wv { 0%, 100% { height: 12px; opacity: .55; } 50% { height: 52px; opacity: 1; } }
+  .rec-hint { font-size: 16px; color: var(--sub); margin-top: 22px; }
+  .stop-btn {
+    margin-top: auto; margin-bottom: 46px;
+    width: 150px; height: 150px; border-radius: 50%;
+    background: var(--danger); color: #fff; border: none;
+    font-size: 18px; font-weight: 700; line-height: 1.4;
+    cursor: pointer; font-family: inherit;
+    box-shadow: 0 12px 26px rgba(211, 32, 41, .3);
+  }
+
+  /* 识别中 */
+  .recognizing { align-items: center; justify-content: center; text-align: center; }
+  .spinner {
+    width: 62px; height: 62px; border-radius: 50%;
+    border: 5px solid #D8E3F5; border-top-color: var(--primary);
+    animation: spin .9s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .recognizing p { font-size: 18px; color: var(--text); margin-top: 26px; }
+  .recognizing small { font-size: 14px; color: var(--sub); margin-top: 10px; }
+
+  /* 确认 */
+  .confirm-label { font-size: 17px; color: var(--sub); margin-top: 18px; text-align: center; }
+  .bubble {
+    background: #fff; border-radius: 18px; padding: 22px;
+    font-size: 19px; line-height: 1.7; margin-top: 18px;
+    box-shadow: 0 2px 10px rgba(17, 32, 56, .05);
+  }
+  .confirm-note { font-size: 14px; color: var(--sub); text-align: center; margin-top: 14px; }
+  .btn {
+    width: 100%; height: 60px; border-radius: 30px; border: none;
+    font-size: 19px; font-weight: 600; font-family: inherit; cursor: pointer;
+    transition: transform .12s ease;
+  }
+  .btn:active { transform: scale(.985); }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-ghost { background: var(--primary-soft); color: var(--primary); }
+  .btn-white { background: #fff; color: var(--danger); }
+  .btn-block { margin-top: auto; }
+  .actions { display: flex; flex-direction: column; gap: 12px; margin-top: auto; padding-top: 20px; }
+
+  /* 结果 */
+  .result-head { font-size: 16px; color: var(--sub); text-align: center; margin-top: 12px; }
+  .dept-card {
+    background: #fff; border-radius: 22px; padding: 32px 22px 26px;
+    margin-top: 20px; text-align: center;
+    box-shadow: 0 2px 12px rgba(17, 32, 56, .05);
+  }
+  .dept-name { font-size: 34px; font-weight: 700; color: var(--primary-dark); letter-spacing: 1px; }
+  .dept-why { font-size: 15px; color: var(--sub); margin-top: 12px; line-height: 1.6; }
+  .dept-alt { font-size: 15px; color: var(--sub); margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--line); }
+  .dept-alt b { color: var(--primary-dark); font-weight: 600; }
+  .askback {
+    background: #FFF3E0; color: #B25300; border-radius: 14px;
+    padding: 16px; font-size: 16px; line-height: 1.6; margin-top: 16px; text-align: left;
+  }
+  .disclaimer { font-size: 12px; color: #98A2B0; text-align: center; margin-top: 18px; line-height: 1.6; }
+
+  /* 医院列表 */
+  .list-head { font-size: 14px; color: var(--sub); padding: 8px 2px 12px; }
+  .hcard {
+    background: #fff; border-radius: 18px; padding: 18px;
+    margin-bottom: 12px; cursor: pointer;
+    box-shadow: 0 2px 10px rgba(17, 32, 56, .04);
+    transition: transform .12s ease, box-shadow .12s;
+    border: 2px solid transparent;
+  }
+  .hcard:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(17, 32, 56, .1); border-color: #CFE0FA; }
+  .hrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .hname { font-size: 18px; font-weight: 700; }
+  .tag-ok { font-size: 12px; color: #fff; background: var(--green); padding: 4px 9px; border-radius: 8px; white-space: nowrap; }
+  .tag-no { font-size: 12px; color: var(--sub); background: #E4E8EE; padding: 4px 9px; border-radius: 8px; white-space: nowrap; }
+  .hmeta { font-size: 13px; color: var(--sub); margin-top: 9px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .hmeta .sep { color: #C0C6CF; }
+  .hmeta .dept { color: var(--primary-dark); }
+  .hslot { font-size: 13px; color: var(--green); margin-top: 8px; }
+  .empty { font-size: 15px; color: var(--danger); text-align: center; padding: 40px 20px; line-height: 1.7; }
+
+  /* 挂号页 */
+  .reg-top { background: var(--primary); color: #fff; margin: 0 -20px; padding: 16px 20px 18px; }
+  .reg-top h3 { font-size: 20px; }
+  .reg-top p { font-size: 14px; opacity: .9; margin-top: 6px; }
+  .reg-banner { background: var(--danger); color: #fff; font-size: 12px; text-align: center; padding: 6px; margin: 0 -20px 14px; }
+  .reg-card { background: #fff; border-radius: 16px; padding: 16px; margin-bottom: 12px; }
+  .reg-card h4 { font-size: 14px; color: var(--sub); font-weight: 500; margin-bottom: 10px; }
+  .doc-row { display: flex; align-items: center; padding: 12px 0; border-bottom: 1px solid #EEF1F5; cursor: pointer; }
+  .doc-row:last-child { border-bottom: none; }
+  .doc-row .di { flex: 1; }
+  .doc-row .dn { font-size: 16px; font-weight: 600; }
+  .doc-row .dt { font-size: 13px; color: var(--sub); margin-top: 3px; }
+  .doc-row .pick { font-size: 13px; padding: 7px 13px; border-radius: 16px; background: var(--primary-soft); color: var(--primary-dark); border: none; font-family: inherit; }
+  .doc-row.on .pick { background: var(--primary); color: #fff; }
+  .slots { display: flex; flex-wrap: wrap; gap: 8px; }
+  .slot { padding: 10px 15px; border-radius: 10px; background: var(--bg); font-size: 14px; border: 2px solid transparent; cursor: pointer; }
+  .slot.on { background: var(--primary-soft); border-color: var(--primary); color: var(--primary-dark); font-weight: 600; }
+  .reg-ok { text-align: center; padding: 46px 10px; }
+  .tick { width: 74px; height: 74px; border-radius: 50%; background: var(--green); color: #fff; font-size: 40px; line-height: 74px; margin: 0 auto 20px; }
+  .reg-ok h3 { font-size: 22px; }
+  .reg-ok p { font-size: 15px; color: var(--sub); line-height: 1.8; margin-top: 10px; }
+
+  /* 急症 */
+  .emergency { background: var(--danger); margin: -44px -20px 0; padding: 0 24px 24px; flex: 1; align-items: center; text-align: center; color: #fff; }
+  .emergency .warn { font-size: 52px; margin-top: 46px; }
+  .emergency h2 { font-size: 25px; margin-top: 16px; line-height: 1.4; }
+  .emergency .advice { font-size: 17px; line-height: 1.7; margin-top: 20px; opacity: .96; }
+  .emergency .note { font-size: 13px; color: #FFD9DB; margin-top: 16px; }
+  .emergency .actions { width: 100%; }
+  .emergency .btn-ghost2 { background: rgba(255,255,255,.18); color: #FFD9DB; }
+  .e911 { font-size: 21px; height: 62px; }
+
+  .legend { margin-top: 18px; font-size: 12px; color: #7A8494; text-align: center; max-width: 397px; line-height: 1.7; }
+</style>
+</head>
+<body>
+
+<div class="page-title"><b>安心挂号</b> · HarmonyOS 语音分诊挂号 · 交互原型</div>
+
+<div class="phone">
+  <div class="screen">
+    <div class="statusbar">
+      <span>9:41</span>
+      <div class="icons"><span style="font-size:12px">5G</span><div class="bar"></div></div>
+    </div>
+
+    <div class="screen-inner" id="scroller">
+
+      <!-- 0 首页 -->
+      <div class="view home active" id="v-home">
+        <h1>有事您说话</h1>
+        <p class="sub">哪里不舒服，说给我听</p>
+
+        <div class="mic-wrap">
+          <div class="mic-ring"></div>
+          <div class="mic-ring"></div>
+          <div class="mic-btn" id="micBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+              <rect x="9" y="2" width="6" height="12" rx="3"/>
+              <path d="M5 11a7 7 0 0 0 14 0"/>
+              <path d="M12 18v3"/>
+            </svg>
+            <span>点这里说话</span>
+          </div>
+        </div>
+
+        <p class="tip">说完再点一下，我就带您去挂号</p>
+
+        <div class="samples">
+          <p>不方便说话？点下面的例子试试</p>
+          <div class="chips" id="chips"></div>
+        </div>
+      </div>
+
+      <!-- 1 录音中 -->
+      <div class="view recording" id="v-rec">
+        <h2>我在听……</h2>
+        <div class="rec-time" id="recTime">0 秒</div>
+        <div class="wave" id="wave"></div>
+        <p class="rec-hint">说慢一点，说清楚哪里不舒服</p>
+        <button class="stop-btn" id="stopBtn">说完了<br>点这里</button>
+      </div>
+
+      <!-- 2 识别中 -->
+      <div class="view recognizing" id="v-recognizing">
+        <div class="spinner"></div>
+        <p>正在听您说……</p>
+        <small>正在把您的话整理成症状</small>
+      </div>
+
+      <!-- 3 确认 -->
+      <div class="view" id="v-confirm">
+        <p class="confirm-label">您说的是这个意思吗？</p>
+        <div class="bubble" id="confirmText"></div>
+        <p class="confirm-note">如果不对，请点下面重说一遍</p>
+        <div class="actions">
+          <button class="btn btn-primary" id="okBtn">对，就是这么回事</button>
+          <button class="btn btn-ghost" id="retryBtn">说得不对，我重说</button>
+        </div>
+      </div>
+
+      <!-- 4 分诊结果 -->
+      <div class="view" id="v-result">
+        <p class="result-head" id="resultHead">建议您挂这个科</p>
+        <div class="dept-card" id="deptCard"></div>
+        <div class="actions">
+          <button class="btn btn-primary" id="regBtn">帮我挂号</button>
+        </div>
+        <p class="disclaimer">本应用仅提供科室推荐，不提供诊断建议。<br>如有紧急情况请直接拨打 120。</p>
+      </div>
+
+      <!-- 5 医院列表 -->
+      <div class="view" id="v-hospitals">
+        <p class="list-head">离您近、还能挂上号的医院</p>
+        <div id="hospitalList"></div>
+      </div>
+
+      <!-- 6 挂号页 -->
+      <div class="view" id="v-register">
+        <div class="reg-banner">演示页面，不产生真实挂号</div>
+        <div class="reg-top">
+          <h3 id="regHosp">医院</h3>
+          <p id="regDept">科室</p>
+        </div>
+        <div id="regBody">
+          <div class="reg-card">
+            <h4>选择医生</h4>
+            <div class="doc-row on" data-doc="王医生">
+              <div class="di"><div class="dn">王医生</div><div class="dt">主任医师 · 擅长老年常见病</div></div>
+              <button class="pick">选择</button>
+            </div>
+            <div class="doc-row" data-doc="李医生">
+              <div class="di"><div class="dn">李医生</div><div class="dt">副主任医师 · 专病门诊</div></div>
+              <button class="pick">选择</button>
+            </div>
+          </div>
+          <div class="reg-card">
+            <h4>选择时间</h4>
+            <div class="slots" id="regSlots"></div>
+          </div>
+        </div>
+        <div id="regOk" style="display:none" class="reg-ok">
+          <div class="tick">✓</div>
+          <h3>预约成功</h3>
+          <p id="regResult"></p>
+          <p style="font-size:13px;color:#98A2B0;margin-top:16px">这是演示流程，请勿据此前往就诊</p>
+        </div>
+        <div class="actions" id="regAction">
+          <button class="btn btn-primary" id="submitReg" disabled style="background:#C7D3E3">请选择时间</button>
+        </div>
+      </div>
+
+      <!-- 7 急症 -->
+      <div class="view emergency" id="v-emergency">
+        <div class="warn">⚠️</div>
+        <h2 id="emTitle">胸痛伴大汗，当心心梗</h2>
+        <p class="advice" id="emAdvice"></p>
+        <p class="note">如情况紧急，请直接拨打 120，比在 App 里挂号更快。</p>
+        <div class="actions">
+          <button class="btn btn-white e911" id="call120">拨打 120</button>
+          <button class="btn btn-ghost2" id="emSkip">我了解风险，仍要挂号</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<p class="legend">原型说明：数据与分诊规则为演示用途，医院名称、距离、号源均为虚构。<br>真实鸿蒙工程见 anxin-hospital 目录。</p>
+
+<script>
+/* ============ 分诊知识库（与 ArkTS 版本一致的精简版） ============ */
+var RULES = [
+  { id:'cardiology', name:'心血管内科', parts:['胸口','心口','心前区','前胸','心脏'],
+    sym:['胸闷','发闷','胸口发闷','憋气','气短','心慌','心悸','心跳快','心口疼','胸口疼','胸痛','喘不上气','上不来气','气不够用','喘气','费劲','水肿','浮肿','腿肿','脚肿','心脏乱跳'],
+    ctx:['高血压','血压高','冠心病','血脂高','腿肿','脚肿'], w:1.0,
+    hint:'胸口、心口的不适首选心血管内科' },
+  { id:'neurology', name:'神经内科', parts:['头','脑袋','后脑勺','太阳穴','手脚','半身'],
+    sym:['头晕','头昏','晕乎','天旋地转','迷糊','头痛','头疼','偏头疼','手麻','脚麻','手脚发麻','嘴歪','说话不清','手抖','哆嗦','记不住事','忘事','糊涂'],
+    ctx:['高血压','脑梗','中风'], w:0.95,
+    hint:'头晕、头痛、手脚发麻挂神经内科' },
+  { id:'respiratory', name:'呼吸内科', parts:['嗓子','喉咙','肺','气管'],
+    sym:['咳嗽','咳痰','咳血','老慢支','喘','憋气','气短','气不够用','呼吸困难','发烧','发热'],
+    ctx:['吸烟','抽烟','肺气肿','哮喘'], w:0.9,
+    hint:'咳嗽、咳痰、气短挂呼吸内科' },
+  { id:'gastroenterology', name:'消化内科', parts:['肚子','腹部','胃','胃口','小肚子','上腹'],
+    sym:['肚子疼','胃疼','胃痛','腹胀','肚子胀','反酸','烧心','打嗝','不消化','拉肚子','腹泻','便秘','解不出','拉不出来','恶心','呕吐','黑便','便血'],
+    ctx:['胃炎','胃溃疡','胆结石'], w:0.95,
+    hint:'胃疼、腹胀、反酸、拉肚子挂消化内科' },
+  { id:'endocrinology', name:'内分泌科', parts:['脖子','甲状腺'],
+    sym:['血糖高','口渴','多尿','吃得多还瘦','掉秤','怕冷','怕热','出汗多'],
+    ctx:['糖尿病','甲亢','甲减','血糖'], w:0.95,
+    hint:'血糖、甲状腺问题挂内分泌科' },
+  { id:'nephrology', name:'肾内科', parts:['腰','肾'],
+    sym:['腿肿','脚肿','眼皮肿','尿里泡沫','尿血','小便少','尿少'],
+    ctx:['糖尿病','高血压','肾病','肌酐高'], w:0.85,
+    hint:'浮肿、小便异常可挂肾内科' },
+  { id:'orthopedics', name:'骨科', parts:['腰','腰杆','后脊梁','膝盖','关节','腿','肩','脖子','颈椎','胳膊','髋','胯','脚踝','脚背','脚趾'],
+    sym:['腰疼','腰痛','腿疼','膝盖疼','关节疼','骨头疼','腰酸','腿酸','蹲不下去','腿没劲','走不动','酸疼','僵','摔了','扭了','崴脚','脚疼','骨折'],
+    ctx:['骨质疏松','骨质增生','腰椎','颈椎'], w:1.0,
+    hint:'腰腿关节疼痛挂骨科' },
+  { id:'urology', name:'泌尿外科', parts:['小便','尿道','前列腺'],
+    sym:['尿频','尿急','起夜','夜里起来','起夜多','憋不住','憋不住尿','尿不出来','小便疼','尿痛','漏尿','小便细'],
+    ctx:['前列腺','结石'], w:0.95,
+    hint:'尿频、尿急、起夜多挂泌尿外科' },
+  { id:'ophthalmology', name:'眼科', parts:['眼睛','眼'],
+    sym:['眼花','看不清','眼睛模糊','眼前黑','飞蚊','眼睛疼','流眼泪','怕光','眼皮肿'],
+    ctx:['白内障','青光眼'], w:1.0,
+    hint:'视力下降、眼睛不适挂眼科' },
+  { id:'ent', name:'耳鼻咽喉科', parts:['耳朵','鼻子','嗓子','喉咙'],
+    sym:['耳鸣','耳朵嗡嗡','听不见','耳朵背','耳朵疼','流脓','鼻塞','流鼻血','嗓子疼','声音哑','打呼噜'],
+    ctx:['鼻炎','咽炎'], w:0.95,
+    hint:'耳鸣、听力下降、鼻塞挂耳鼻咽喉科' },
+  { id:'dermatology', name:'皮肤科', parts:['皮肤','身上','后背','胳膊'],
+    sym:['痒','起疹子','起疙瘩','红斑','脱皮','皮肤干','长斑','破了不愈合'],
+    ctx:['湿疹','过敏','带状疱疹'], w:0.95,
+    hint:'皮肤瘙痒、起疹子挂皮肤科' },
+  { id:'psychiatry', name:'精神心理科', parts:[],
+    sym:['睡不着','失眠','睡不好','早醒','心里烦','不想说话','没意思','情绪低','焦虑','紧张','害怕'],
+    ctx:['丧偶','独居','退休'], w:0.8,
+    hint:'长期失眠、情绪低落可挂精神心理科' },
+  { id:'geriatrics', name:'老年医学科', parts:[],
+    sym:['没劲','乏力','浑身没劲','不想吃','没胃口','瘦了','走路不稳','容易摔'],
+    ctx:['高血压','糖尿病','吃药多','好几种病'], w:0.7,
+    hint:'说不清哪个科、同时有多种慢性病，可看老年医学科' },
+  { id:'general_surgery', name:'普通外科', parts:['肚子','腹部','肛门','疝'],
+    sym:['肚子疼','包块','鼓包','痔疮','便血','胆囊'],
+    ctx:['疝气','阑尾'], w:0.6,
+    hint:'腹部包块、疝气、痔疮挂普通外科' }
+];
+
+var FLAGS = [
+  { title:'胸痛伴大汗，当心心梗', advice:'请立即拨打 120，不要自行走动，不要等号。',
+    groups:[['胸痛','胸口疼','心口疼','胸口压','压榨'],['大汗','冒汗','冷汗','出汗','湿透']] },
+  { title:'嘴歪、半身无力、说话不清，当心中风', advice:'请立即拨打 120，记录发病时间，不要喂水喂药。',
+    groups:[['嘴歪','口角歪','半边','一侧','半身'],['没劲','无力','抬不起来','说话不清','说不清','吐字']] },
+  { title:'呕血或黑便，可能是消化道出血', advice:'请立即拨打 120，暂时禁食禁水。',
+    groups:[['呕血','吐血','黑便','大便发黑','柏油']] },
+  { title:'静坐仍喘不上气，属急症', advice:'请立即拨打 120，保持坐位，松开衣领。',
+    groups:[['喘不上气','上不来气','呼吸困难','憋气'],['躺着','平躺','不动','坐着也','夜里憋醒']] },
+  { title:'晕倒或意识不清', advice:'请立即拨打 120，让老人平卧、头偏向一侧。',
+    groups:[['晕倒','昏倒','人事不省','叫不应','意识不清','晕过去']] }
+];
+
+var HOSPITALS = [
+  { id:'h1', name:'市第一人民医院', level:'三级甲等', km:2.3, depts:{
+      cardiology:['心血管内科',true,'今天 15:30'], neurology:['神经内科',true,'明天 09:00'],
+      respiratory:['呼吸内科',true,'今天 16:00'], gastroenterology:['消化内科',true,'明天 10:30'],
+      endocrinology:['内分泌科',true,'明天 14:00'], nephrology:['肾内科',false,''],
+      orthopedics:['骨科',true,'今天 14:00'], urology:['泌尿外科',true,'明天 08:30'],
+      ophthalmology:['眼科',true,'今天 17:00'], ent:['耳鼻咽喉科',true,'明天 11:00'],
+      dermatology:['皮肤科',true,'明天 15:00'], psychiatry:['精神心理科',false,''],
+      geriatrics:['老年医学科',true,'明天 09:30'], general_surgery:['普通外科',true,'明天 13:30'],
+      emergency:['急诊科',true,'24 小时开放'] } },
+  { id:'h2', name:'市中心医院', level:'三级甲等', km:4.1, depts:{
+      cardiology:['心血管内科',true,'明天 08:30'], neurology:['神经内科',true,'今天 15:00'],
+      respiratory:['呼吸内科',true,'明天 10:00'], gastroenterology:['消化内科',true,'今天 16:30'],
+      endocrinology:['内分泌科',true,'明天 09:00'], nephrology:['肾内科',true,'明天 14:30'],
+      orthopedics:['骨科',true,'明天 11:00'], urology:['泌尿外科',true,'今天 17:30'],
+      ophthalmology:['眼科',false,''], ent:['耳鼻咽喉科',true,'明天 09:30'],
+      dermatology:['皮肤科',true,'今天 14:30'], geriatrics:['老年医学科',true,'今天 15:30'],
+      emergency:['急诊科',true,'24 小时开放'] } },
+  { id:'h3', name:'区人民医院', level:'二级甲等', km:1.2, depts:{
+      cardiology:['心血管内科',true,'今天 14:00'], gastroenterology:['消化内科',true,'今天 15:00'],
+      respiratory:['呼吸内科',true,'明天 09:30'], orthopedics:['骨科',true,'今天 16:00'],
+      ophthalmology:['眼科',true,'明天 10:00'], dermatology:['皮肤科',true,'今天 14:30'],
+      geriatrics:['老年医学科',false,''], emergency:['急诊科',true,'24 小时开放'] } },
+  { id:'h4', name:'市中医院', level:'三级甲等', km:3.5, depts:{
+      cardiology:['心血管内科',true,'明天 09:00'], gastroenterology:['消化内科',true,'明天 14:00'],
+      neurology:['脑病科',false,''], orthopedics:['骨伤科',true,'今天 15:30'],
+      geriatrics:['老年病科',true,'今天 16:30'], rehabilitation:['康复医学科',true,'明天 10:30'],
+      dermatology:['皮肤科',true,'明天 15:30'] } },
+  { id:'h5', name:'社区卫生服务中心', level:'一级', km:0.8, depts:{
+      general_practice:['全科门诊',true,'今天 14:00'], geriatrics:['老年医学科',true,'今天 15:00'],
+      cardiology:['心血管内科',true,'明天 09:00'] } }
+];
+
+var SAMPLES = [
+  { tag:'胸口不适', text:'我这几天心口窝这儿发闷，喘气有点费劲，晚上躺下更难受。' },
+  { tag:'头晕', text:'大夫，我脑袋晕，站起来眼前发黑，天旋地转的。' },
+  { tag:'腰腿疼', text:'我这个腰疼得厉害，膝盖也疼，蹲下去就起不来了。' },
+  { tag:'胃不舒服', text:'我吃点东西就肚子胀，还反酸烧心，晚上睡不着觉。' },
+  { tag:'起夜多', text:'我一晚上要起来七八趟小便，还憋不住。' },
+  { tag:'看不清', text:'我眼睛花，看东西模模糊糊的，跟蒙了一层雾似的。' },
+  { tag:'急症演示', text:'我胸口疼得厉害，出了一身大汗，还恶心想吐。' },
+  { tag:'说不清', text:'我最近浑身不得劲，也不知道哪儿不舒服。' }
+];
+
+/* ============ 分诊引擎 ============ */
+function norm(t) { return t.replace(/[，。！？、,.!?\s"'（）()【】]/g, ''); }
+
+function triage(text) {
+  var h = norm(text);
+
+  // 1 危急信号优先
+  for (var i = 0; i < FLAGS.length; i++) {
+    var f = FLAGS[i], all = true;
+    for (var g = 0; g < f.groups.length; g++) {
+      var hit = f.groups[g].some(function (w) { return h.indexOf(w) >= 0; });
+      if (!hit) { all = false; break; }
+    }
+    if (all) {
+      return { emergency: true, title: f.title, advice: f.advice };
+    }
+  }
+
+  // 2 规则打分
+  var extraSym = [];
+  var hasTrauma = ['崴','摔','扭','撞','外伤','磕','砸'].some(function (w) { return h.indexOf(w) >= 0; });
+  if (h.indexOf('肿') >= 0 && (h.indexOf('腿') >= 0 || h.indexOf('脚') >= 0 || h.indexOf('下肢') >= 0) && !hasTrauma) {
+    extraSym.push('腿肿');
+  }
+
+  var scores = [], evAll = {};
+  RULES.forEach(function (r) {
+    var raw = 0, ev = [];
+    r.parts.forEach(function (w) {
+      if (h.indexOf(w) >= 0) { raw += 3 * r.w + (w.length >= 3 ? .5 : 0); ev.push(w); }
+    });
+    r.sym.forEach(function (w) {
+      if (h.indexOf(w) >= 0) { raw += 2 * r.w + (w.length >= 3 ? .5 : 0); ev.push(w); }
+    });
+    extraSym.forEach(function (w) {
+      if (r.sym.indexOf(w) >= 0) { raw += 2 * r.w + .5; ev.push(w); }
+    });
+    r.ctx.forEach(function (w) {
+      if (h.indexOf(w) >= 0) { raw += 1.5 * r.w; ev.push(w); }
+    });
+    if (raw > 0) { scores.push({ r: r, raw: raw, ev: ev }); evAll[r.id] = ev; }
+  });
+
+  var vague = ['不得劲','不舒服','难受','说不上来','不知道哪儿','浑身','全身'].some(function (w) { return h.indexOf(w) >= 0; })
+              && !scores.some(function (s) { return s.ev.length > 0; });
+
+  if (scores.length === 0) {
+    return { needMore: true, dept:'老年医学科', conf:30, ev:[],
+             ask:'您能说说具体是身体哪个部位不舒服吗？比如头、胸口、肚子、腰、腿。',
+             hint:'说不清具体科室时，老年医学科可以帮您综合判断' };
+  }
+
+  scores.sort(function (a, b) { return b.raw - a.raw; });
+  var top = scores[0], conf = Math.round(100 * (1 - Math.exp(-top.raw / 4)));
+  if (scores.length > 1 && scores[1].raw / top.raw > 0.75) conf = Math.round(conf * 0.82);
+  if (vague) conf = Math.min(conf, 40);
+
+  var alts = scores.slice(1, 3).filter(function (s) { return s.raw >= top.raw * 0.4; })
+                   .map(function (s) { return s.r.name; });
+
+  return {
+    needMore: conf < 55,
+    dept: top.r.name,
+    deptId: top.r.id,
+    hint: top.r.hint,
+    conf: conf,
+    ev: top.ev,
+    alts: alts,
+    ask: top.r.parts.length === 0
+      ? '您这个部位是怎么个难受法？是疼、是胀、是麻，还是没劲？'
+      : '我还没太听太准，您能再说说怎么个难受法吗？'
+  };
+}
+
+/* ============ 医院匹配 ============ */
+function matchHospitals(deptId) {
+  var out = [];
+  HOSPITALS.forEach(function (h) {
+    var d = h.depts[deptId];
+    if (d) out.push({ h: h, d: d, bookable: d[1] });
+  });
+  if (out.length === 0) {
+    HOSPITALS.forEach(function (h) {
+      var d = h.depts['general_practice'] || h.depts['geriatrics'];
+      if (d) out.push({ h: h, d: d, bookable: d[1] });
+    });
+  }
+  out.sort(function (a, b) { return rank(b) - rank(a); });
+  return out;
+}
+function rank(m) {
+  var s = 0;
+  if (m.bookable) s += 45;
+  s += Math.max(0, 40 - m.h.km * 6);
+  if (m.h.level.indexOf('三级甲等') >= 0) s += 25;
+  else if (m.h.level.indexOf('二级甲等') >= 0) s += 15;
+  return s;
+}
+
+/* ============ 状态与渲染 ============ */
+var state = { text:'', result:null, hospital:null, slot:'' };
+var el = function (id) { return document.getElementById(id); };
+
+function show(id) {
+  document.querySelectorAll('.view').forEach(function (v) { v.classList.remove('active'); });
+  el(id).classList.add('active');
+  el('scroller').scrollTop = 0;
+}
+
+function renderChips() {
+  var box = el('chips');
+  SAMPLES.forEach(function (s) {
+    var b = document.createElement('button');
+    b.className = 'chip';
+    b.textContent = s.tag;
+    b.onclick = function () { startRecognize(s.text); };
+    box.appendChild(b);
+  });
+}
+
+var recTimer = null, recSec = 0;
+
+function startRecord() {
+  recSec = 0;
+  el('recTime').textContent = '0 秒';
+  el('wave').innerHTML = '';
+  for (var i = 0; i < 13; i++) {
+    var bar = document.createElement('i');
+    bar.style.animationDelay = (i * 0.08) + 's';
+    el('wave').appendChild(bar);
+  }
+  show('v-rec');
+  clearInterval(recTimer);
+  recTimer = setInterval(function () {
+    recSec++;
+    el('recTime').textContent = recSec + ' 秒';
+    if (recSec >= 30) stopRecord();
+  }, 1000);
+}
+
+function stopRecord() {
+  clearInterval(recTimer);
+  // 真机这里是真实录音，原型用第一条样例模拟识别结果
+  startRecognize(SAMPLES[0].text);
+}
+
+function startRecognize(text) {
+  clearInterval(recTimer);
+  el('confirmText').textContent = text;
+  state.text = text;
+  show('v-recognizing');
+  setTimeout(function () { show('v-confirm'); }, 1100);
+}
+
+function doTriage() {
+  var r = triage(state.text);
+  state.result = r;
+
+  if (r.emergency) {
+    el('emTitle').textContent = r.title;
+    el('emAdvice').textContent = r.advice;
+    show('v-emergency');
+    return;
+  }
+
+  el('resultHead').textContent = r.needMore ? '我还想再问问您' : '建议您挂这个科';
+  var card = el('deptCard');
+  card.innerHTML = '';
+
+  var name = document.createElement('div');
+  name.className = 'dept-name';
+  name.textContent = r.dept;
+  card.appendChild(name);
+
+  if (r.ev.length) {
+    var why = document.createElement('div');
+    why.className = 'dept-why';
+    why.textContent = '您说到「' + r.ev.slice(0, 3).join('、') + '」';
+    card.appendChild(why);
+  }
+
+  if (r.needMore) {
+    var ask = document.createElement('div');
+    ask.className = 'askback';
+    ask.textContent = r.ask;
+    card.appendChild(ask);
+  }
+
+  if (r.alts && r.alts.length) {
+    var alt = document.createElement('div');
+    alt.className = 'dept-alt';
+    alt.innerHTML = '也可以看：<b>' + r.alts.join('、') + '</b>';
+    card.appendChild(alt);
+  }
+
+  if (r.hint) {
+    var hint = document.createElement('div');
+    hint.className = 'dept-why';
+    hint.style.color = '#98A2B0';
+    hint.style.fontSize = '13px';
+    hint.textContent = r.hint;
+    card.appendChild(hint);
+  }
+
+  var btn = el('regBtn');
+  if (r.needMore) {
+    btn.textContent = '就先看老年医学科';
+    btn.className = 'btn btn-ghost';
+  } else {
+    btn.textContent = '帮我挂号';
+    btn.className = 'btn btn-primary';
+  }
+
+  show('v-result');
+}
+
+function goHospitals() {
+  var r = state.result;
+  var deptId = r.deptId || 'geriatrics';
+  var list = matchHospitals(deptId);
+  var box = el('hospitalList');
+  box.innerHTML = '';
+
+  if (list.length === 0) {
+    box.innerHTML = '<p class="empty">暂时没有可挂号的医院<br>建议直接到院或拨打 120</p>';
+    show('v-hospitals');
+    return;
+  }
+
+  list.forEach(function (m) {
+    var card = document.createElement('div');
+    card.className = 'hcard';
+    card.innerHTML =
+      '<div class="hrow"><span class="hname">' + m.h.name + '</span>' +
+      '<span class="' + (m.bookable ? 'tag-ok' : 'tag-no') + '">' + (m.bookable ? '有号' : '约满') + '</span></div>' +
+      '<div class="hmeta"><span>' + m.h.level + '</span><span class="sep">·</span>' +
+      '<span>' + m.h.km + ' 公里</span><span class="sep">·</span>' +
+      '<span class="dept">' + m.d[0] + '</span></div>' +
+      (m.bookable && m.d[2] ? '<div class="hslot">最近可约：' + m.d[2] + '</div>' : '');
+    card.onclick = function () { openRegister(m); };
+    box.appendChild(card);
+  });
+
+  show('v-hospitals');
+}
+
+function openRegister(m) {
+  state.hospital = m;
+  el('regHosp').textContent = m.h.name;
+  el('regDept').textContent = m.d[0];
+  el('regBody').style.display = 'block';
+  el('regOk').style.display = 'none';
+  el('regAction').style.display = 'flex';
+
+  var base = (m.d[2] || '').indexOf('今天') === 0 ? '今天' : '明天';
+  var times = base === '今天'
+    ? ['14:00', '14:30', '15:00', '15:30', '16:00']
+    : ['08:30', '09:00', '09:30', '10:00', '10:30'];
+  var slots = el('regSlots');
+  slots.innerHTML = '';
+  times.forEach(function (t) {
+    var s = document.createElement('div');
+    s.className = 'slot';
+    s.textContent = base + ' ' + t;
+    s.onclick = function () {
+      slots.querySelectorAll('.slot').forEach(function (x) { x.classList.remove('on'); });
+      s.classList.add('on');
+      state.slot = base + ' ' + t;
+      var b = el('submitReg');
+      b.disabled = false;
+      b.textContent = '确认挂号';
+      b.style.background = 'var(--primary)';
+    };
+    slots.appendChild(s);
+  });
+
+  document.querySelectorAll('.doc-row').forEach(function (row) {
+    row.classList.remove('on');
+    document.querySelector('.doc-row').classList.add('on');
+  });
+  el('submitReg').disabled = true;
+  el('submitReg').textContent = '请选择时间';
+  el('submitReg').style.background = '#C7D3E3';
+
+  show('v-register');
+}
+
+/* ============ 事件绑定 ============ */
+el('micBtn').onclick = function () {
+  if (document.querySelector('.mic-btn span').textContent === '点这里说话') {
+    startRecord();
+  }
+};
+el('stopBtn').onclick = stopRecord;
+el('okBtn').onclick = doTriage;
+el('retryBtn').onclick = function () { show('v-home'); };
+el('regBtn').onclick = goHospitals;
+el('emSkip').onclick = goHospitals;
+el('call120').onclick = function () { alert('将调起系统拨号盘拨打 120'); };
+
+document.querySelectorAll('.doc-row').forEach(function (row) {
+  row.onclick = function () {
+    document.querySelectorAll('.doc-row').forEach(function (r) { r.classList.remove('on'); });
+    row.classList.add('on');
+  };
+});
+
+el('submitReg').onclick = function () {
+  var m = state.hospital;
+  el('regBody').style.display = 'none';
+  el('regOk').style.display = 'block';
+  el('regAction').style.display = 'none';
+  el('regResult').innerHTML = m.h.name + '　' + m.d[0] + '<br>王医生　' + state.slot;
+};
+
+renderChips();
+</script>
+</body>
+</html>

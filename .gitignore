@@ -1,0 +1,20 @@
+/node_modules
+/oh_modules
+/local.properties
+/.idea
+/.hvigor
+/.clangd
+/.clang-format
+*.iml
+**/build
+**/.cxx
+**/oh_modules
+
+# DevEco Studio 预览构建缓存（体积大，且是源码中间产物）
+**/.preview
+
+# 构建与安装日志
+build*.log
+.build.log
+.ohpm-install.log
+*.stackdump

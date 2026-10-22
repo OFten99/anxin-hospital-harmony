@@ -1,0 +1,11 @@
+{
+  "name": "entry",
+  "version": "1.0.0",
+  "description": "安心挂号主模块",
+  "main": "",
+  "author": "",
+  "license": "",
+  "dependencies": {
+    "@tencent/wechat_open_sdk": "1.0.23"
+  }
+}
