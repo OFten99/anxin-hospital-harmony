@@ -18,3 +18,7 @@ build*.log
 .build.log
 .ohpm-install.log
 *.stackdump
+
+# 简历等个人隐私文件，不上传公开仓库
+docs/resume_preview/
+docs/简历项目描述.md
