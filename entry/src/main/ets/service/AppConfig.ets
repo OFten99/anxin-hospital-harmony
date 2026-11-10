@@ -72,8 +72,7 @@ export class AppConfig {
    * 被拉起小程序的**原始 ID**，gh_ 开头。
    * 获取位置：小程序后台 → 设置 → 基本设置 → 账号信息 → 原始ID
    *
-   * 当前值来自「经常有的小窝」（个人主体，类目 工具>预约/报名）。
-   * 对应 AppID 为 wxxxxxxxxxxxxxxxxx —— 那个只用于上传代码，不要填到这里。
+   * TODO: 填你自己的原始 ID（gh_ 开头），不要把 wx 的 AppID 填到这里。
    */
   static readonly WX_MINI_PROGRAM_ORIGIN_ID: string = 'gh_xxxxxxxxxxxxxxxx';
 

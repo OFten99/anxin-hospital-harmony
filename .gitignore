@@ -22,3 +22,6 @@ build*.log
 # 简历等个人隐私文件，不上传公开仓库
 docs/resume_preview/
 docs/简历项目描述.md
+
+# 含微信小程序 AppID / 原始 ID / 注册个人信息，不上传公开仓库
+docs/个人小程序-体验版-取原始ID.md
